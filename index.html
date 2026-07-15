@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📏 امتحان الفيزياء - القياس (صف تاسع متقدم)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        body.en-mode { font-family: 'Inter', sans-serif; }
+        .correct { background-color: #dcfce7 !important; border-color: #16a34a !important; }
+        .incorrect { background-color: #fee2e2 !important; border-color: #dc2626 !important; }
+        .formula { font-family: 'Times New Roman', serif; letter-spacing: 0.5px; direction: ltr; display: inline-block; font-style: italic; }
+        .timer-warning { color: #dc2626 !important; animation: pulse 1s infinite; }
+        @keyframes pulse { 50% { opacity: 0.7; } }
+        @media print { .no-print { display: none !important; } }
+        .success-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 0.875rem; }
+        .grade-excellent { background: #dcfce7; color: #166534; }
+        .grade-good { background: #fef3c7; color: #92400e; }
+        .grade-pass { background: #dbeafe; color: #1e40af; }
+        .grade-fail { background: #fee2e2; color: #991b1b; }
+        .lang-switch {
+            position: fixed; top: 16px; left: 16px; z-index: 100;
+            background: white; padding: 6px; border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15); display: flex; gap: 4px;
+            border: 2px solid #8b5cf6;
+        }
+        [dir="ltr"] .lang-switch { left: auto; right: 16px; }
+        .lang-btn {
+            padding: 6px 14px; border-radius: 20px; cursor: pointer; font-weight: bold;
+            transition: all 0.3s; border: none; font-size: 0.875rem;
+            background: transparent; color: #6b7280;
+        }
+        .lang-btn.active { background: #8b5cf6; color: white; box-shadow: 0 2px 6px rgba(139, 92, 246, 0.4); }
+        .lang-btn:hover:not(.active) { background: #f5f3ff; color: #7c3aed; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 p-4 md:p-8 min-h-screen">
+
+    <div class="lang-switch no-print">
+        <button class="lang-btn active" onclick="setLanguage('ar')" id="btn-ar">عربي</button>
+        <button class="lang-btn" onclick="setLanguage('en')" id="btn-en">EN</button>
+    </div>
+
+    <div id="timer-container" class="max-w-4xl mx-auto mb-4 text-center no-print">
+        <div class="bg-white p-4 rounded-xl shadow-md inline-block border-2 border-purple-100">
+            <span class="text-gray-600 ml-2" data-ar="⏱️ الوقت المتبقي:" data-en="⏱️ Time Remaining:">⏱️ الوقت المتبقي:</span>
+            <span id="timer" class="text-2xl font-bold text-purple-600 font-mono">60:00</span>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto mb-6 flex flex-wrap gap-3 justify-center no-print">
+        <button onclick="toggleAnswers()" class="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-lg font-medium transition shadow cursor-pointer" data-ar="👁️ إظهار / إخفاء الإجابات" data-en="👁️ Show / Hide Answers">👁️ إظهار / إخفاء الإجابات</button>
+        <button onclick="window.print()" class="bg-gray-800 hover:bg-gray-900 text-white px-5 py-2 rounded-lg font-medium transition shadow cursor-pointer" data-ar="🖨️ طباعة / PDF" data-en="🖨️ Print / PDF">🖨️ طباعة / PDF</button>
+        <button onclick="reshuffleExam()" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-5 py-2 rounded-lg font-medium transition shadow cursor-pointer" data-ar="🔀 إعادة خلط الأسئلة" data-en="🔀 Reshuffle Questions">🔀 إعادة خلط الأسئلة</button>
+    </div>
+
+    <header class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-md mb-8 border-r-4 border-purple-600">
+        <div class="text-center">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2" data-ar="📏 امتحان الفيزياء - القياس" data-en="📏 Physics Exam - Measurement">📏 امتحان الفيزياء - القياس</h1>
+            <h2 class="text-lg text-purple-600 font-semibold" data-ar="Measurement (Grade 9 Advanced)" data-en="Measurement (Grade 9 Advanced)">Measurement (Grade 9 Advanced)</h2>
+            <p class="text-sm text-gray-600 mt-2" data-ar="أسئلة تغطي: مفهوم القياس، الضبط والدقة، هامش الخطأ، تقنيات القياس" data-en="Covers: Concept of Measurement, Precision and Accuracy, Margin of Error, Measurement Techniques">أسئلة تغطي: مفهوم القياس، الضبط والدقة، هامش الخطأ، تقنيات القياس</p>
+        </div>
+        <div class="mt-4 flex flex-wrap justify-center gap-4 text-sm text-gray-600">
+            <span><span data-ar="📅 التاريخ:" data-en="📅 Date:">📅 التاريخ:</span> <input type="text" class="border-b border-gray-400 bg-transparent w-28 text-center"></span>
+            <span><span data-ar="👤 الاسم:" data-en="👤 Name:">👤 الاسم:</span> <input type="text" id="studentName" class="border-b border-gray-400 bg-transparent w-32 text-center" placeholder="Enter name"></span>
+            <span><span data-ar="🏫 الشعبة:" data-en="🏫 Class:">🏫 الشعبة:</span> <input type="text" id="studentClass" class="border-b border-gray-400 bg-transparent w-28 text-center" placeholder="Class"></span>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto space-y-8" id="exam-content"></main>
+
+    <div class="text-center no-print pb-8 mt-8">
+        <button onclick="gradeExam()" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-lg px-10 py-4 rounded-xl font-bold shadow-xl transition transform hover:scale-105 cursor-pointer" data-ar="📝 تسليم وتصحيح الامتحان" data-en="📝 Submit & Grade Exam">📝 تسليم وتصحيح الامتحان</button>
+    </div>
+
+    <div id="results-panel" class="max-w-4xl mx-auto mt-8 bg-white p-8 rounded-2xl shadow-2xl border-t-4 border-emerald-500 hidden no-print">
+        <h2 class="text-3xl font-bold text-gray-900 mb-6 text-center" data-ar="📊 نتائج الامتحان" data-en="📊 Exam Results">📊 نتائج الامتحان</h2>
+        <div class="grid md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-blue-50 p-4 rounded-xl text-center"><p data-ar="اسم الطالب" data-en="Student Name">اسم الطالب</p><p id="res-name" class="font-bold text-xl text-purple-700">-</p></div>
+            <div class="bg-purple-50 p-4 rounded-xl text-center"><p data-ar="التاريخ" data-en="Date">التاريخ</p><p id="res-date" class="font-bold text-xl text-purple-700">-</p></div>
+            <div class="bg-emerald-50 p-4 rounded-xl text-center"><p data-ar="المجموع" data-en="Score">المجموع</p><p id="res-total" class="font-bold text-3xl text-emerald-600">0 / 100</p></div>
+        </div>
+        <div class="text-center mb-6">
+            <span id="success-badge" class="success-badge grade-excellent">-</span>
+            <p id="success-percent" class="text-4xl font-bold text-emerald-600 mt-2">100%</p>
+        </div>
+        <div class="bg-gray-50 p-6 rounded-xl mb-6">
+            <h3 class="font-bold text-lg mb-4 text-gray-800" data-ar="📈 تفصيل الأداء حسب القسم:" data-en="📈 Performance Breakdown:">📈 تفصيل الأداء حسب القسم:</h3>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center"><span class="text-gray-700" data-ar="مفهوم القياس" data-en="Concept of Measurement">مفهوم القياس</span><span id="sec1-score" class="font-bold text-purple-600">0/4</span></div>
+                <div class="flex justify-between items-center"><span class="text-gray-700" data-ar="الضبط والدقة" data-en="Precision and Accuracy">الضبط والدقة</span><span id="sec2-score" class="font-bold text-purple-600">0/4</span></div>
+                <div class="flex justify-between items-center"><span class="text-gray-700" data-ar="هامش الخطأ" data-en="Margin of Error">هامش الخطأ</span><span id="sec3-score" class="font-bold text-purple-600">0/4</span></div>
+                <div class="flex justify-between items-center"><span class="text-gray-700" data-ar="تقنيات القياس" data-en="Measurement Techniques">تقنيات القياس</span><span id="sec4-score" class="font-bold text-purple-600">0/4</span></div>
+                <div class="flex justify-between items-center"><span class="text-gray-700" data-ar="التطبيقات" data-en="Applications">التطبيقات</span><span id="sec5-score" class="font-bold text-purple-600">0/4</span></div>
+            </div>
+        </div>
+        <div class="text-center mb-6">
+            <button id="sendEmailBtn" onclick="sendResultsToEmail()" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-lg px-8 py-3 rounded-xl font-bold shadow-xl transition transform hover:scale-105 cursor-pointer" data-ar="📧 إرسال النتائج" data-en="📧 Send Results">📧 إرسال النتائج</button>
+            <p id="emailStatus" class="text-sm mt-2 text-center font-medium"></p>
+        </div>
+        <div class="flex gap-3 justify-center">
+            <button onclick="window.print()" class="bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold" data-ar="🖨️ طباعة" data-en="🖨️ Print">🖨️ طباعة</button>
+        </div>
+    </div>
+
+    <footer class="max-w-4xl mx-auto mt-10 mb-8 text-center text-gray-500 text-sm no-print">
+        © <span data-ar="الفيزياء - القياس" data-en="Physics - Measurement">الفيزياء - القياس</span> | Mr. Hesham Afandiii
+    </footer>
+
+<script>
+const PUBLIC_KEY = "Rb3Lq8tXaFmc5YHUH";
+const SERVICE_ID = "service_w15m64i";
+const TEMPLATE_ID = "template_5b0u2tq";
+const TARGET_EMAIL = "mohammedhesham872@gmail.com";
+emailjs.init(PUBLIC_KEY);
+
+const originalExamData = {
+    sections: [
+        {
+            id: 'sec1',
+            title: { ar: '🔹 مفهوم القياس', en: '🔹 Concept of Measurement' },
+            questions: [
+                {
+                    q: { ar: 'ما هو تعريف القياس؟', en: 'What is the definition of measurement?' },
+                    options: [
+                        { ar: 'مقارنة كمية مجهولة بأخرى معيارية', en: 'Comparing an unknown quantity with a standard' },
+                        { ar: 'تسجيل الأرقام فقط', en: 'Recording numbers only' },
+                        { ar: 'تقدير القيم بدون أدوات', en: 'Estimating values without tools' },
+                        { ar: 'استخدام الأدوات فقط', en: 'Using tools only' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'القياس هو مقارنة كمية مجهولة بأخرى معيارية.', en: 'Measurement is comparing an unknown quantity with a standard.' }
+                },
+                {
+                    q: { ar: 'ما هي الكمية المجهولة في قياس كتلة عربة صغيرة؟', en: 'What is the unknown quantity when measuring the mass of a small cart?' },
+                    options: [
+                        { ar: 'كتلة العربة', en: 'Mass of the cart' },
+                        { ar: 'كتلة الميزان', en: 'Mass of the scale' },
+                        { ar: 'طول العربة', en: 'Length of the cart' },
+                        { ar: 'وزن العربة', en: 'Weight of the cart' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'الكمية المجهولة هي كتلة العربة.', en: 'The unknown quantity is the mass of the cart.' }
+                },
+                {
+                    q: { ar: 'لماذا تُسجل نتائج القياسات بهامش خطأ؟', en: 'Why are measurement results recorded with a margin of error?' },
+                    options: [
+                        { ar: 'لأن القياسات قد لا تتطابق تمامًا بسبب مصادر الخطأ', en: 'Because measurements may not match exactly due to error sources' },
+                        { ar: 'لأن العلماء لا يثقون في أدواتهم', en: 'Because scientists do not trust their tools' },
+                        { ar: 'لأنها قاعدة في العلم', en: 'Because it is a rule in science' },
+                        { ar: 'لأن القياسات دائمًا غير دقيقة', en: 'Because measurements are always inaccurate' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'تُسجل النتائج بهامش خطأ لأن القياسات قد لا تتطابق تمامًا بسبب مصادر الخطأ.', en: 'Results are recorded with a margin of error because measurements may not match exactly due to error sources.' }
+                },
+                {
+                    q: { ar: 'ما هي الكمية المعيارية في قياس طول زنبرك؟', en: 'What is the standard quantity in measuring the length of a spring?' },
+                    options: [
+                        { ar: 'السنتيمتر', en: 'Centimeter' },
+                        { ar: 'المتر', en: 'Meter' },
+                        { ar: 'المليمتر', en: 'Millimeter' },
+                        { ar: 'الزنبرك نفسه', en: 'The spring itself' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'الكمية المعيارية هي السنتيمتر.', en: 'The standard quantity is the centimeter.' }
+                }
+            ]
+        },
+        {
+            id: 'sec2',
+            title: { ar: '🔹 الضبط والدقة', en: '🔹 Precision and Accuracy' },
+            questions: [
+                {
+                    q: { ar: 'ما هو تعريف الضبط؟', en: 'What is the definition of precision?' },
+                    options: [
+                        { ar: 'درجة اتفاق القياسات المختلفة لكمية مقيسة', en: 'Degree of agreement among different measurements of a quantity' },
+                        { ar: 'مدى اتفاق نتائج القياس مع القيمة الحقيقية', en: 'Extent to which measurement results agree with the true value' },
+                        { ar: 'الخطأ في القياس', en: 'Error in measurement' },
+                        { ar: 'الأداة المستخدمة في القياس', en: 'Tool used for measurement' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'الضبط هو درجة اتفاق القياسات المختلفة لكمية مقيسة.', en: 'Precision is the degree of agreement among different measurements of a quantity.' }
+                },
+                {
+                    q: { ar: 'ما هو تعريف الدقة؟', en: 'What is the definition of accuracy?' },
+                    options: [
+                        { ar: 'مدى اتفاق نتائج القياس مع القيمة الحقيقية', en: 'Extent to which measurement results agree with the true value' },
+                        { ar: 'درجة اتفاق القياسات المختلفة', en: 'Degree of agreement among different measurements' },
+                        { ar: 'الخطأ في القياس', en: 'Error in measurement' },
+                        { ar: 'الأداة المستخدمة في القياس', en: 'Tool used for measurement' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'الدقة هي مدى اتفاق نتائج القياس مع القيمة الحقيقية.', en: 'Accuracy is the extent to which measurement results agree with the true value.' }
+                },
+                {
+                    q: { ar: 'ما هو الفرق بين الضبط والدقة؟', en: 'What is the difference between precision and accuracy?' },
+                    options: [
+                        { ar: 'الضبط يتعلق باتفاق القياسات مع بعضها، والدقة تتعلق باتفاق القياس مع القيمة الحقيقية', en: 'Precision relates to agreement among measurements, accuracy relates to agreement with the true value' },
+                        { ar: 'الضبط والدقة نفس الشيء', en: 'Precision and accuracy are the same' },
+                        { ar: 'الدقة تتعلق باتفاق القياسات مع بعضها، والضبط يتعلق باتفاق القياس مع القيمة الحقيقية', en: 'Accuracy relates to agreement among measurements, precision relates to agreement with the true value' },
+                        { ar: 'لا يوجد فرق', en: 'There is no difference' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'الضبط يتعلق باتفاق القياسات مع بعضها، والدقة تتعلق باتفاق القياس مع القيمة الحقيقية.', en: 'Precision relates to agreement among measurements, accuracy relates to agreement with the true value.' }
+                },
+                {
+                    q: { ar: 'أي من الطلاب الثلاثة في مثال الزنبرك كان الأكثر دقة؟', en: 'Which of the three students in the spring example was the most accurate?' },
+                    options: [
+                        { ar: 'الطالب الثاني', en: 'Student 2' },
+                        { ar: 'الطالب الأول', en: 'Student 1' },
+                        { ar: 'الطالب الثالث', en: 'Student 3' },
+                        { ar: 'جميعهم بنفس الدقة', en: 'All are equally accurate' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'الطالب الثاني كان الأكثر دقة.', en: 'Student 2 was the most accurate.' }
+                }
+            ]
+        },
+        {
+            id: 'sec3',
+            title: { ar: '🔹 هامش الخطأ', en: '🔹 Margin of Error' },
+            questions: [
+                {
+                    q: { ar: 'ما هو هامش الخطأ في قياس الطالب الأول لطول الزنبرك؟', en: 'What is the margin of error in the first student\'s measurement of the spring length?' },
+                    options: [
+                        { ar: '± 0.2 cm', en: '+/- 0.2 cm' },
+                        { ar: '± 0.1 cm', en: '+/- 0.1 cm' },
+                        { ar: '± 0.3 cm', en: '+/- 0.3 cm' },
+                        { ar: '± 0.4 cm', en: '+/- 0.4 cm' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'هامش الخطأ في قياس الطالب الأول هو ± 0.2 cm.', en: 'The margin of error in the first student\'s measurement is +/- 0.2 cm.' }
+                },
+                {
+                    q: { ar: 'ما هو هامش الخطأ في قياس الطالب الثالث لطول الزنبرك؟', en: 'What is the margin of error in the third student\'s measurement of the spring length?' },
+                    options: [
+                        { ar: '± 0.1 cm', en: '+/- 0.1 cm' },
+                        { ar: '± 0.2 cm', en: '+/- 0.2 cm' },
+                        { ar: '± 0.3 cm', en: '+/- 0.3 cm' },
+                        { ar: '± 0.4 cm', en: '+/- 0.4 cm' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'هامش الخطأ في قياس الطالب الثالث هو ± 0.1 cm.', en: 'The margin of error in the third student\'s measurement is +/- 0.1 cm.' }
+                },
+                {
+                    q: { ar: 'هل تتطابق قياسات الطلاب الثلاثة لطول الزنبرك؟', en: 'Do the measurements of the three students for the spring length match?' },
+                    options: [
+                        { ar: 'لا، لأن نطاقات نتائج الطالبين الأول والثاني لا تتقاطع مع نتيجة الطالب الثالث', en: 'No, because the ranges of results for students 1 and 2 do not overlap with student 3\'s result' },
+                        { ar: 'نعم، لأن جميع القياسات متقاربة', en: 'Yes, because all measurements are close' },
+                        { ar: 'نعم، لأن جميع الهوامش تتقاطع', en: 'Yes, because all margins overlap' },
+                        { ar: 'لا، لأن جميع القياسات مختلفة', en: 'No, because all measurements are different' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'لا، لأن نطاقات نتائج الطالبين الأول والثاني لا تتقاطع مع نتيجة الطالب الثالث.', en: 'No, because the ranges of results for students 1 and 2 do not overlap with student 3\'s result.' }
+                },
+                {
+                    q: { ar: 'ما هو سبب عدم تطابق قياسات الطلاب الثلاثة؟', en: 'What is the reason for the non-matching of the three students\' measurements?' },
+                    options: [
+                        { ar: 'اختلاف الضبط في القياسات', en: 'Difference in precision of measurements' },
+                        { ar: 'اختلاف الدقة في القياسات', en: 'Difference in accuracy of measurements' },
+                        { ar: 'اختلاف الأدوات المستخدمة', en: 'Difference in tools used' },
+                        { ar: 'اختلاف الزمن', en: 'Difference in time' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'سبب عدم تطابق القياسات هو اختلاف الدقة في القياسات.', en: 'The reason for the non-matching is the difference in accuracy of measurements.' }
+                }
+            ]
+        },
+        {
+            id: 'sec4',
+            title: { ar: '🔹 تقنيات القياس', en: '🔹 Measurement Techniques' },
+            questions: [
+                {
+                    q: { ar: 'ما هي الطريقة الصحيحة لقراءة أداة القياس؟', en: 'What is the correct way to read a measurement tool?' },
+                    options: [
+                        { ar: 'النظر عموديًا على التدريج', en: 'Looking perpendicularly at the scale' },
+                        { ar: 'النظر مائلًا على التدريج', en: 'Looking obliquely at the scale' },
+                        { ar: 'النظر من أعلى التدريج', en: 'Looking from above the scale' },
+                        { ar: 'النظر من جانب التدريج', en: 'Looking from the side of the scale' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'الطريقة الصحيحة هي النظر عموديًا على التدريج.', en: 'The correct way is to look perpendicularly at the scale.' }
+                },
+                {
+                    q: { ar: 'ما هو تأثير اختلاف زاوية النظر على القياس؟', en: 'What is the effect of the parallax error on measurement?' },
+                    options: [
+                        { ar: 'يؤدي إلى قراءة غير دقيقة', en: 'Leads to an inaccurate reading' },
+                        { ar: 'يؤدي إلى قراءة أكثر دقة', en: 'Leads to a more precise reading' },
+                        { ar: 'لا يؤثر على القياس', en: 'Does not affect the measurement' },
+                        { ar: 'يؤدي إلى قراءة أسرع', en: 'Leads to a faster reading' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'اختلاف زاوية النظر يؤدي إلى قراءة غير دقيقة.', en: 'Parallax error leads to an inaccurate reading.' }
+                },
+                {
+                    q: { ar: 'ما هي طريقة معايرة الجهاز؟', en: 'What is the method of calibrating a device?' },
+                    options: [
+                        { ar: 'التأكد من أن قراءة الأداة صفر عندما ينبغي أن تكون كذلك', en: 'Ensuring that the device reads zero when it should' },
+                        { ar: 'تغيير التدريج على الأداة', en: 'Changing the scale on the device' },
+                        { ar: 'استخدام أداة أخرى', en: 'Using another device' },
+                        { ar: 'إصلاح الأداة', en: 'Repairing the device' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'طريقة معايرة الجهاز هي التأكد من أن قراءة الأداة صفر عندما ينبغي أن تكون كذلك.', en: 'The method of calibrating a device is ensuring that the device reads zero when it should.' }
+                },
+                {
+                    q: { ar: 'ما هي أهمية معايرة الأدوات؟', en: 'What is the importance of calibrating devices?' },
+                    options: [
+                        { ar: 'ضمان دقة القياسات', en: 'Ensuring the accuracy of measurements' },
+                        { ar: 'زيادة سرعة القياس', en: 'Increasing the speed of measurement' },
+                        { ar: 'تقليل تكلفة الأداة', en: 'Reducing the cost of the device' },
+                        { ar: 'زيادة عمر الأداة', en: 'Increasing the lifespan of the device' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'أهمية معايرة الأدوات هي ضمان دقة القياسات.', en: 'The importance of calibrating devices is ensuring the accuracy of measurements.' }
+                }
+            ]
+        },
+        {
+            id: 'sec5',
+            title: { ar: '🔹 التطبيقات', en: '🔹 Applications' },
+            questions: [
+                {
+                    q: { ar: 'ما هو نظام تحديد المواقع العالمي (GPS)؟', en: 'What is the Global Positioning System (GPS)?' },
+                    options: [
+                        { ar: 'نظام يتكون من 24 قمرًا صناعيًا لقياس الموقع', en: 'A system of 24 satellites for measuring position' },
+                        { ar: 'نظام لقياس الوقت فقط', en: 'A system for measuring time only' },
+                        { ar: 'نظام لقياس درجة الحرارة', en: 'A system for measuring temperature' },
+                        { ar: 'نظام لقياس السرعة', en: 'A system for measuring speed' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'نظام تحديد المواقع العالمي (GPS) هو نظام يتكون من 24 قمرًا صناعيًا لقياس الموقع.', en: 'GPS is a system of 24 satellites for measuring position.' }
+                },
+                {
+                    q: { ar: 'ما هي الدقة التي يمكن أن يحققها نظام GPS في السيارات؟', en: 'What accuracy can a GPS system in cars achieve?' },
+                    options: [
+                        { ar: 'هامش خطأ أمتار قليلة', en: 'Margin of error of a few meters' },
+                        { ar: 'هامش خطأ كيلومترات', en: 'Margin of error of kilometers' },
+                        { ar: 'هامش خطأ سنتيمترات', en: 'Margin of error of centimeters' },
+                        { ar: 'هامش خطأ ملليمترات', en: 'Margin of error of millimeters' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'نظام GPS في السيارات يمكن أن يحقق هامش خطأ أمتار قليلة.', en: 'A GPS system in cars can achieve a margin of error of a few meters.' }
+                },
+                {
+                    q: { ar: 'ما هي الدقة التي يمكن أن يحققها نظام GPS في أبحاث الجيوفيزياء؟', en: 'What accuracy can a GPS system in geophysics research achieve?' },
+                    options: [
+                        { ar: 'قياس الحركات في القشرة الأرضية بالملليمتر', en: 'Measuring movements in the Earth\'s crust in millimeters' },
+                        { ar: 'قياس الحركات في القشرة الأرضية بالسنتيمتر', en: 'Measuring movements in the Earth\'s crust in centimeters' },
+                        { ar: 'قياس الحركات في القشرة الأرضية بالمتر', en: 'Measuring movements in the Earth\'s crust in meters' },
+                        { ar: 'قياس الحركات في القشرة الأرضية بالكيلومتر', en: 'Measuring movements in the Earth\'s crust in kilometers' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'نظام GPS في أبحاث الجيوفيزياء يمكن أن يحقق قياس الحركات في القشرة الأرضية بالملليمتر.', en: 'A GPS system in geophysics research can measure movements in the Earth\'s crust in millimeters.' }
+                },
+                {
+                    q: { ar: 'ما هي استخدامات نظام GPS؟', en: 'What are the uses of the GPS system?' },
+                    options: [
+                        { ar: 'الملاحة، عمل الخرائط، الاتصالات عن بعد', en: 'Navigation, mapping, remote communications' },
+                        { ar: 'قياس درجة الحرارة فقط', en: 'Measuring temperature only' },
+                        { ar: 'قياس الوقت فقط', en: 'Measuring time only' },
+                        { ar: 'قياس السرعة فقط', en: 'Measuring speed only' }
+                    ],
+                    correct: 0,
+                    answer: { ar: 'استخدامات نظام GPS هي الملاحة، عمل الخرائط، الاتصالات عن بعد.', en: 'The uses of GPS are navigation, mapping, and remote communications.' }
+                }
+            ]
+        }
+    ]
+};
+
+function shuffleArray(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+let examData;
+let correctAnswersMap = {};
+let currentLang = 'ar';
+let timeRemaining = 3600;
+let timerInterval;
+
+function prepareShuffledExam() {
+    examData = JSON.parse(JSON.stringify(originalExamData));
+    correctAnswersMap = {};
+    let globalIdx = 0;
+    examData.sections.forEach((section) => {
+        section.questions = shuffleArray(section.questions);
+        section.questions.forEach((q) => {
+            const optionsWithCorrect = q.options.map((opt, idx) => ({
+                option: opt,
+                isCorrect: idx === q.correct
+            }));
+            const shuffledOptions = shuffleArray(optionsWithCorrect);
+            q.options = shuffledOptions.map(o => o.option);
+            const newCorrectIndex = shuffledOptions.findIndex(o => o.isCorrect);
+            q.correct = newCorrectIndex;
+            correctAnswersMap[globalIdx] = String.fromCharCode(97 + newCorrectIndex);
+            globalIdx++;
+        });
+    });
+}
+
+function reshuffleExam() {
+    prepareShuffledExam();
+    renderExam();
+    document.querySelectorAll('input[type="radio"]:checked').forEach(r => r.checked = false);
+    document.getElementById('results-panel').classList.add('hidden');
+    document.querySelectorAll('.correct, .incorrect').forEach(el => {
+        el.classList.remove('correct', 'incorrect');
+    });
+    alert(currentLang === 'ar' ? '🔀 تم إعادة خلط الأسئلة!' : '🔀 Questions reshuffled!');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function setLanguage(lang) {
+    currentLang = lang;
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    document.getElementById('btn-ar').classList.toggle('active', lang === 'ar');
+    document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+    document.body.classList.toggle('en-mode', lang === 'en');
+    document.querySelectorAll('[data-ar][data-en]').forEach(el => {
+        el.textContent = el.getAttribute(`data-${lang}`);
+    });
+    renderExam();
+}
+
+function renderExam() {
+    const container = document.getElementById('exam-content');
+    const labels = {
+        ar: { option: ['أ', 'ب', 'ج', 'د'], answer: '✅ الإجابة:' },
+        en: { option: ['A', 'B', 'C', 'D'], answer: '✅ Answer:' }
+    };
+    const lbl = labels[currentLang];
+    const isRTL = currentLang === 'ar';
+    let html = '';
+    let globalIdx = 0;
+    examData.sections.forEach((section) => {
+        html += `<section class="bg-white p-6 rounded-xl shadow-lg"><h2 class="text-xl font-bold mb-4 text-purple-700">${section.title[currentLang]}</h2><ol class="space-y-4 text-sm">`;
+        section.questions.forEach((q) => {
+            const borderSide = isRTL ? 'border-r-4 pr-4' : 'border-l-4 pl-4';
+            html += `<li class="${borderSide} border-purple-500 py-2" id="q-${globalIdx}"><strong>${globalIdx + 1}.</strong> ${q.q[currentLang]}<br>`;
+            q.options.forEach((opt, oIdx) => {
+                const radioSide = isRTL ? 'mr-4 ml-2' : 'ml-4 mr-2';
+                html += `<label class="cursor-pointer block mt-1 ${isRTL ? 'mr-4' : 'ml-4'}"><input type="radio" name="q${globalIdx}" value="${String.fromCharCode(97 + oIdx)}" class="${radioSide}"> ${lbl.option[oIdx]}) ${opt[currentLang]}</label>`;
+            });
+            html += `<div class="answer-box text-green-700 mt-2 font-medium hidden">${lbl.answer} ${lbl.option[q.correct]}) ${q.options[q.correct][currentLang]} — ${q.answer[currentLang]}</div></li>`;
+            globalIdx++;
+        });
+        html += `</ol></section>`;
+    });
+    container.innerHTML = html;
+}
+
+function startTimer() {
+    document.getElementById('timer-container').style.display = 'block';
+    timerInterval = setInterval(() => {
+        timeRemaining--;
+        const minutes = Math.floor(timeRemaining / 60);
+        const seconds = timeRemaining % 60;
+        document.getElementById('timer').textContent = `${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+        if (timeRemaining <= 300) document.getElementById('timer').classList.add('timer-warning');
+        if (timeRemaining <= 0) {
+            clearInterval(timerInterval);
+            alert(currentLang === 'ar' ? "انتهى الوقت!" : "Time's up!");
+            gradeExam();
+        }
+    }, 1000);
+}
+
+function toggleAnswers() {
+    document.querySelectorAll('.answer-box').forEach(el => el.classList.toggle('hidden'));
+}
+
+function gradeExam() {
+    let correctCount = 0;
+    let sec1 = 0, sec2 = 0, sec3 = 0, sec4 = 0, sec5 = 0;
+    for (let i = 0; i < 20; i++) {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        const li = document.getElementById(`q-${i}`);
+        const correctAnswer = correctAnswersMap[i];
+        if (li) {
+            const isCorrect = selected && selected.value === correctAnswer;
+            if (isCorrect) {
+                correctCount++;
+                li.classList.add('correct');
+                li.classList.remove('incorrect');
+                if (i < 4) sec1++;
+                else if (i < 8) sec2++;
+                else if (i < 12) sec3++;
+                else if (i < 16) sec4++;
+                else sec5++;
+            } else {
+                li.classList.add('incorrect');
+                li.classList.remove('correct');
+            }
+        }
+    }
+    const score = (correctCount / 20) * 100;
+    const successRate = Math.round(score);
+    document.getElementById('res-total').textContent = `${Math.round(score)} / 100`;
+    document.getElementById('res-name').textContent = document.getElementById('studentName').value || (currentLang === 'ar' ? 'طالب' : 'Student');
+    document.getElementById('res-date').textContent = new Date().toLocaleDateString(currentLang === 'ar' ? 'ar-AE' : 'en-US');
+    document.getElementById('sec1-score').textContent = `${sec1}/4`;
+    document.getElementById('sec2-score').textContent = `${sec2}/4`;
+    document.getElementById('sec3-score').textContent = `${sec3}/4`;
+    document.getElementById('sec4-score').textContent = `${sec4}/4`;
+    document.getElementById('sec5-score').textContent = `${sec5}/4`;
+    const badge = document.getElementById('success-badge');
+    const percent = document.getElementById('success-percent');
+    percent.textContent = `${successRate}%`;
+    if (currentLang === 'ar') {
+        if (successRate >= 90) { badge.textContent = 'ممتاز'; badge.className = 'success-badge grade-excellent'; }
+        else if (successRate >= 75) { badge.textContent = 'جيد جداً'; badge.className = 'success-badge grade-good'; }
+        else if (successRate >= 50) { badge.textContent = 'جيد'; badge.className = 'success-badge grade-pass'; }
+        else { badge.textContent = 'يحتاج تحسين'; badge.className = 'success-badge grade-fail'; }
+    } else {
+        if (successRate >= 90) { badge.textContent = 'Excellent'; badge.className = 'success-badge grade-excellent'; }
+        else if (successRate >= 75) { badge.textContent = 'Very Good'; badge.className = 'success-badge grade-good'; }
+        else if (successRate >= 50) { badge.textContent = 'Good'; badge.className = 'success-badge grade-pass'; }
+        else { badge.textContent = 'Needs Improvement'; badge.className = 'success-badge grade-fail'; }
+    }
+    document.getElementById('results-panel').classList.remove('hidden');
+    document.getElementById('results-panel').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('sendEmailBtn').classList.remove('hidden');
+}
+
+function sendResultsToEmail() {
+    const btn = document.getElementById('sendEmailBtn');
+    const status = document.getElementById('emailStatus');
+    btn.disabled = true;
+    btn.textContent = currentLang === 'ar' ? '⏳ جاري الإرسال...' : '📤 Sending...';
+    const name = document.getElementById('studentName').value || 'N/A';
+    const studentClass = document.getElementById('studentClass').value || 'N/A';
+    const date = document.querySelector('input[type="text"]').value || new Date().toLocaleDateString();
+    const score = document.getElementById('res-total').textContent;
+    const successRate = document.getElementById('success-percent').textContent;
+    const badge = document.getElementById('success-badge').textContent;
+    const sectionNames = {
+        ar: ['مفهوم القياس', 'الضبط والدقة', 'هامش الخطأ', 'تقنيات القياس', 'التطبيقات'],
+        en: ['Concept of Measurement', 'Precision and Accuracy', 'Margin of Error', 'Measurement Techniques', 'Applications']
+    };
+    const currentSectionNames = sectionNames[currentLang];
+    let answersHTML = `<div style="font-family: 'Segoe UI', Tahoma, Arial, sans-serif; direction: ${currentLang === 'ar' ? 'rtl' : 'ltr'};"><div style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 20px; border-radius: 10px 10px 0 0; text-align: center;"><h2 style="margin: 0; font-size: 22px;">📏 ${currentLang === 'ar' ? 'نتيجة امتحان الفيزياء - القياس' : 'Physics Exam - Measurement Result'}</h2><p style="margin: 5px 0 0 0; opacity: 0.9;">${currentLang === 'ar' ? 'Measurement (Grade 9 Advanced)' : 'Measurement (Grade 9 Advanced)'}</p></div><div style="background: #f5f3ff; padding: 15px; border: 1px solid #e9d5ff;"><table style="width: 100%; border-collapse: collapse;"><tr><td style="padding: 8px; font-weight: bold; color: #7c3aed;">${currentLang === 'ar' ? '👤 الاسم:' : '👤 Name:'}</td><td style="padding: 8px;">${name}</td><td style="padding: 8px; font-weight: bold; color: #7c3aed;">${currentLang === 'ar' ? '🏫 الشعبة:' : '🏫 Class:'}</td><td style="padding: 8px;">${studentClass}</td></tr><tr><td style="padding: 8px; font-weight: bold; color: #7c3aed;">${currentLang === 'ar' ? '📅 التاريخ:' : '📅 Date:'}</td><td style="padding: 8px;">${date}</td><td style="padding: 8px; font-weight: bold; color: #7c3aed;">${currentLang === 'ar' ? '🏆 التقدير:' : '🏆 Grade:'}</td><td style="padding: 8px;">${badge}</td></tr></table></div><div style="background: white; padding: 20px; text-align: center; border-bottom: 2px solid #e5e7eb;"><div style="display: inline-block; margin: 0 15px;"><div style="font-size: 32px; font-weight: bold; color: #8b5cf6;">${score}</div><div style="color: #6b7280; font-size: 13px;">${currentLang === 'ar' ? 'الدرجة الكلية' : 'Total Score'}</div></div><div style="display: inline-block; margin: 0 15px;"><div style="font-size: 32px; font-weight: bold; color: #10b981;">${successRate}%</div><div style="color: #6b7280; font-size: 13px;">${currentLang === 'ar' ? 'نسبة النجاح' : 'Success Rate'}</div></div></div><h3 style="background: #f3f4f6; padding: 12px; margin: 0; color: #1f2937; border-bottom: 2px solid #d1d5db;">📝 ${currentLang === 'ar' ? 'تفاصيل الإجابات' : 'Answer Details'}</h3><table style="width: 100%; border-collapse: collapse; font-size: 13px;"><thead><tr style="background: #8b5cf6; color: white;"><th style="padding: 10px; border: 1px solid #7c3aed; width: 8%;">#</th><th style="padding: 10px; border: 1px solid #7c3aed; width: 32%;">${currentLang === 'ar' ? 'القسم' : 'Section'}</th><th style="padding: 10px; border: 1px solid #7c3aed; width: 15%;">${currentLang === 'ar' ? 'الإجابة' : 'Answer'}</th><th style="padding: 10px; border: 1px solid #7c3aed; width: 15%;">${currentLang === 'ar' ? 'الصحيحة' : 'Correct'}</th><th style="padding: 10px; border: 1px solid #7c3aed; width: 15%;">${currentLang === 'ar' ? 'النتيجة' : 'Status'}</th></tr></thead><tbody>`;
+    let sectionScores = [0, 0, 0, 0, 0];
+    let sectionTotals = [4, 4, 4, 4, 4];
+    for (let i = 0; i < 20; i++) {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        const selectedValue = selected ? selected.value : '-';
+        const correctValue = correctAnswersMap[i];
+        const isCorrect = selectedValue === correctValue;
+        const sectionIndex = Math.floor(i / 4);
+        if (isCorrect) sectionScores[sectionIndex]++;
+        const rowBg = i % 2 === 0 ? '#f9fafb' : '#ffffff';
+        const statusBg = isCorrect ? '#dcfce7' : '#fee2e2';
+        const statusColor = isCorrect ? '#166534' : '#991b1b';
+        const statusIcon = isCorrect ? '✅' : '❌';
+        const statusText = isCorrect ? (currentLang === 'ar' ? 'صحيح' : 'Correct') : (currentLang === 'ar' ? 'خطأ' : 'Wrong');
+        answersHTML += `<tr style="background: ${rowBg};"><td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center; font-weight: bold;">${i + 1}</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${currentSectionNames[sectionIndex]}</td><td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center; font-weight: bold;">${selectedValue.toUpperCase()}</td><td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center; font-weight: bold; color: #10b981;">${correctValue.toUpperCase()}</td><td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center; background: ${statusBg}; color: ${statusColor}; font-weight: bold;">${statusIcon} ${statusText}</td></tr>`;
+    }
+    answersHTML += `</tbody></table><h3 style="background: #f3f4f6; padding: 12px; margin: 0; color: #1f2937; border-bottom: 2px solid #d1d5db; border-top: 3px solid #8b5cf6;">📊 ${currentLang === 'ar' ? 'تفصيل الأداء' : 'Performance Breakdown'}</h3><table style="width: 100%; border-collapse: collapse; font-size: 13px;"><thead><tr style="background: #7c3aed; color: white;"><th style="padding: 10px; border: 1px solid #6d28d9;">${currentLang === 'ar' ? 'القسم' : 'Section'}</th><th style="padding: 10px; border: 1px solid #6d28d9; width: 20%;">${currentLang === 'ar' ? 'النتيجة' : 'Score'}</th><th style="padding: 10px; border: 1px solid #6d28d9; width: 20%;">${currentLang === 'ar' ? 'النسبة' : 'Percentage'}</th></tr></thead><tbody>`;
+    for (let i = 0; i < 5; i++) {
+        const percentage = Math.round((sectionScores[i] / sectionTotals[i]) * 100);
+        const barColor = percentage >= 75 ? '#10b981' : percentage >= 50 ? '#f59e0b' : '#ef4444';
+        const rowBg = i % 2 === 0 ? '#f9fafb' : '#ffffff';
+        answersHTML += `<tr style="background: ${rowBg};"><td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: 600;">${currentSectionNames[i]}</td><td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; font-weight: bold; color: #8b5cf6;">${sectionScores[i]} / ${sectionTotals[i]}</td><td style="padding: 10px; border: 1px solid #e5e7eb;"><div style="background: #e5e7eb; border-radius: 10px; overflow: hidden; height: 20px; position: relative;"><div style="background: ${barColor}; width: ${percentage}%; height: 100%;"></div><span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 11px; font-weight: bold; color: #1f2937;">${percentage}%</span></div></td></tr>`;
+    }
+    answersHTML += `</tbody></table><div style="background: linear-gradient(135deg, #f5f3ff, #e9d5ff); padding: 15px; border-radius: 0 0 10px 10px; border-top: 2px solid #8b5cf6;"><p style="margin: 0; color: #7c3aed; text-align: center; font-size: 13px;">💡 <strong>${currentLang === 'ar' ? 'ملاحظة:' : 'Note:'}</strong> ${currentLang === 'ar' ? 'تم إرسال هذا التقرير تلقائياً | Mr. Hesham Afandiii' : 'This report was automatically sent | Mr. Hesham Afandiii'}</p></div></div>`;
+    const templateParams = {
+        to_email: TARGET_EMAIL,
+        student_name: name,
+        student_class: studentClass,
+        exam_date: date,
+        total_score: score,
+        success_rate: successRate,
+        grade: badge,
+        answers_table: answersHTML
+    };
+    emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams)
+        .then(() => {
+            status.textContent = currentLang === 'ar' ? '✅ تم إرسال النتائج بنجاح!' : '✅ Results sent successfully!';
+            status.style.color = '#10b981';
+            btn.textContent = currentLang === 'ar' ? '✓ تم الإرسال' : '✓ Sent';
+        })
+        .catch(err => {
+            status.textContent = currentLang === 'ar' ? '❌ فشل الإرسال' : '❌ Failed to send';
+            status.style.color = '#ef4444';
+            btn.disabled = false;
+            btn.textContent = currentLang === 'ar' ? '📧 إعادة المحاولة' : '📧 Retry';
+        });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    prepareShuffledExam();
+    renderExam();
+    startTimer();
+});
+</script>
+</body>
+</html>
